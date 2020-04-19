@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-image: url('../static/images/pic1.jpg');
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+
+        }
+
+        #main {
+            width: 40%;
+            height: 90vh;
+            background-color: rgb(231, 231, 231);
+            opacity: 0.7;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 5px 5px 15px rgba(255, 255, 255, 0.5);
+        }
+
+        #main:before {
+            background: inherit;
+            filter: blur(10px);
+        }
+
+        #mainHeader {
+            height: 10%;
+            width: 100%;
+            border: solid 1px gray;
+            border-radius: 10px;
+            background-color: rgb(0, 98, 255);
+            color: white;
+
+        }
+
+        #mainFooter {
+            position: absolute;
+            bottom: 4vh;
+            width: inherit;
+            height: 6vh;
+            border-radius: 5px 5px 5px 5px;
+        }
+
+        #textBox {
+            width: 87%;
+            height: 43%;
+            border: hidden;
+            border-radius: 5px 5px 5px 5px;
+            outline: hidden;
+            background-color: white;
+            color: black;
+            padding: 10px;
+            box-shadow: 5px -5px 10px white;
+            font-size: 150%;
+            resize: none;
+        }
+
+        #textBtn {
+            position: fixed;
+            z-index: 1;
+            width: 3.7%;
+            height: inherit;
+            border-radius: 10px 5px 10px 5px;
+            background-color: rgb(0, 98, 255);
+            color: white;
+        }
+
+        #recordBtn {
+            position: fixed;
+            z-index: 100;
+            width: 3.7%;
+            height: inherit;
+            border-radius: 10px 5px 10px 5px;
+            background-color: rgb(0, 98, 255);
+            color: white;
+        }
+
+        #messageBox {
+            width: 100%;
+            height: 85%;
+            display: inline-block;
+            background-color: gray;
+            overflow: scroll;
+
+        }
+
+        #personChat {
+            display: block;
+            max-width: 70%;
+            margin-left: 30%;
+            /* height: 40px; */
+            background-color: rgb(85, 82, 82);
+            color: white;
+            /* margin: 5px; */
+            border-radius: 0 5px 0 5px;
+            resize: none;
+            /* opacity: 1; */
+            font-size: 120%;
+
+        }
+
+        #botChat {
+            display: block;
+            max-width: 70%;
+            /* margin-left: 10%; */
+            /* height: 40px; */
+            background-color: rgb(5, 56, 77);
+            color: white;
+            /* margin: 5px; */
+            border-radius: 0 5px 0 5px;
+            resize: none;
+            /* opacity: 1; */
+            font-size: 120%;
+
+
+        }
+    </style>
+</head>
+
+<body>
+    <div id='main'>
+        <section id='mainHeader' style="text-align: center;">
+            <h1 style="margin-bottom: 25px;font-size: 150%;">Chatter Bot</h1>
+        </section>
+
+        <section id="messageBox" onclick="handleInputBlur()"></section>
+
+        <section id="mainFooter">
+            <textarea type="text" id="textBox" placeholder="Enter your message here" onclick="handleInput()"></textarea>
+            <button id="textBtn" onclick="handleGo()">GO</button>
+            <button id="recordBtn" onclick="handleR()">R</button>
+        </section>
+    </div>
+
+
+    <script>
+        let isRecord = false
+        function handleInput() {
+            document.getElementById('recordBtn').style = 'z-index:0'
+        }
+        function handleInputBlur() {
+            document.getElementById('recordBtn').style = 'z-index:100'
+
+        }
+        function handleGo() {
+            text = document.getElementById('textBox').value
+            document.getElementById('messageBox').innerHTML += `
+                <textarea rows="5" cols = "120" id = 'personChat' disabled>${text}</textarea>
+            `
+            handleResponse(text)
+            document.getElementById('textBox').value=""
+        }
+
+        function handleResponse(msg) {
+            data = new FormData()
+            console.log(msg)
+            data.append('message', msg)
+            let url = "http://127.0.0.1:5000/fetchvalue";
+            let options = {
+                method: 'POST',
+                mode: 'cors',
+                body: data
+            }
+            let req = new Request(url, options)
+            fetch(req).then((res) => res.json()).then((json) => {
+                botResp = json.key
+                document.getElementById('messageBox').innerHTML += `
+                <textarea rows="5" cols = '70' id = 'botChat' disabled>${botResp}</textarea>
+            `
+            if (isRecord){
+                msg =new SpeechSynthesisUtterance(botResp)
+                speechSynthesis.speak(msg)
+                isRecord=false
+            }
+            }).catch((err) => {
+                console.log(err)
+            })
+
+        }
+
+
+
+        var SpeechRecognition = window.webkitSpeechRecognition;
+        let recognition = new SpeechRecognition()
+        recognition.continous = true
+        recognition.onresult = function (e) {
+
+            let current = e.resultIndex;
+            let transcript = e.results[current][0].transcript;
+            console.log(transcript)
+            document.getElementById('textBox').value = transcript
+            document.getElementById('recordBtn').style = 'z-index:0'
+        }
+
+        recognition.onstart = () => { console.log('Start recording') }
+        recognition.onspeechend = () => { console.log('Speech End') }
+        recognition.onerror = function (event) {
+            if (event.error == 'no-speech') {
+                console.log('Try again.');
+            }
+        }
+
+        function handleR() {
+            isRecord = true;
+            recognition.start()
+
+        }
+
+        let start = "Hello,Good to see you.How can i help you?"
+        document.getElementById('messageBox').innerHTML += `
+                <textarea rows="5" cols = '70' id = 'botChat' disabled>${start}</textarea>
+            `
+    </script>
+</body>
+
+</html>
